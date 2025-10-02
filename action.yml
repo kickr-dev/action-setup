@@ -1,0 +1,98 @@
+name: Kickr installation / setup
+description: Installs and setup kickr in GitHub Actions to auto-regenerate project or ensure it's up-to-date
+inputs:
+  version:
+    description: Specific kickr version to install (dev version or release'd version will work).
+    default: latest
+  install-mode:
+    description: Specific installation mode (either 'goinstall', 'binary').
+    default: binary
+runs:
+  using: composite
+  steps:
+    # Pre-checks
+    - if: ${{ !contains(fromJSON('["goinstall", "binary"]'), inputs.install-mode) }}
+      shell: bash
+      run: echo "Invalid 'install-mode' option '$INSTALL_MODE'" && exit 2
+      env:
+        INSTALL_MODE: ${{ inputs.install-mode }}
+
+    # Go mode
+    - if: ${{ inputs.install-mode == 'goinstall' }}
+      shell: bash
+      run: go install github.com/kickr-dev/kickr@$VERSION
+      env:
+        VERSION: ${{ inputs.version }}
+
+    # Binary mode
+    - if: ${{ inputs.install-mode == 'binary' && inputs.version != 'latest' }}
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      with:
+        scripts: |-
+          const release = await github.rest.repos.getReleaseByTag({
+            owner: "kickr-dev",
+            repo: "kickr",
+            release_id: process.env.VERSION,
+          })
+      env:
+        VERSION: ${{ inputs.version }}
+    - id: latest
+      if: ${{ inputs.install-mode == 'binary' && inputs.version == 'latest' }}
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      with:
+        result-encoding: string
+        scripts: |-
+          const release = await github.rest.repos.getLatestRelease({
+            owner: "kickr-dev",
+            repo: "kickr",
+          })
+          if (!release) {
+            throw new Error("No latest release found")
+          }
+          return release.name
+    - if: ${{ inputs.install-mode == 'binary' }}
+      shell: bash
+      run: |-
+        ext=
+        goos=
+        case "$GOOS" in
+          "Linux") goos="linux" && ext="tar.gz";;
+          "Windows") goos="windows" && exit="zip";;
+          "macOS") goos="darwin" && ext="tar.gz";;
+        esac
+
+        goarch=
+        case "$GOARCH" in
+          "X86") echo "This action is only compatible with 'arm64' and 'amd64' based architectures" && exit 2;;
+          "X64") goarch="amd64";;
+          "ARM") echo "This action is only compatible with 'arm64' and 'amd64' based architectures" && exit 2;;
+          "ARM64") goarch="arm64";;
+        esac
+
+        if ! curl -fsSL "https://github.com/kickr-dev/kickr/releases/download/$VERSION/checksums.txt"; then
+          echo "Failed to download release checksums" && exit 1
+        fi
+
+        name="kickr_${goos}_${goarch}.${ext}"
+        if ! curl -fsSL "https://github.com/kickr-dev/kickr/releases/download/$VERSION/${name}"; then
+          rm "$name" &>/dev/null || true
+          echo "Failed to download $name" && exit 1
+        fi
+
+        if ! grep $name checksums.txt | sha256sum --check; then
+          echo "Invalid $name checksum" && exit 1
+        fi
+
+        case "$ext" in
+          "zip") 7z a "$name" kickr.exe;;
+          "tar.gz") tar -xvzf "$name" kickr;;
+        esac
+        rm "$name"
+
+        chmod +x ./kickr && mv ./kickr "$TOOL_CACHE/kickr"
+        kickr version
+      env:
+        GOARCH: ${{ runner.arch }}
+        GOOS: ${{ runner.os }}
+        TOOL_CACHE: ${{ runner.tool_cache }}
+        VERSION: ${{ steps.latest.outputs.result || inputs.version }}
