@@ -57,7 +57,7 @@ runs:
         goos=
         case "$GOOS" in
           "Linux") goos="linux" && ext="tar.gz";;
-          "Windows") goos="windows" && exit="zip";;
+          "Windows") goos="windows" && ext="zip";;
           "macOS") goos="darwin" && ext="tar.gz";;
         esac
 
