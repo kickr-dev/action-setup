@@ -20,7 +20,7 @@ runs:
     # Go mode
     - if: ${{ inputs.install-mode == 'goinstall' }}
       shell: bash
-      run: go install github.com/kickr-dev/kickr@$VERSION
+      run: go install github.com/kickr-dev/kickr/cmd/kickr@$VERSION
       env:
         VERSION: ${{ inputs.version }}
 
