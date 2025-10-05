@@ -52,4 +52,4 @@ jobs:
           sign-commits: true
           signoff: true
           title: "ci(layout): regenerate kickr layout"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.KICKR_MAINTENANCE_TOKEN }}
