@@ -20,7 +20,6 @@ jobs:
     name: Kickr
     runs-on: ubuntu-latest
     permissions:
-      actions: write
       contents: write
       pull-requests: write
     steps:
@@ -30,12 +29,11 @@ jobs:
         with:
           disable-sudo-and-containers: true
           egress-policy: audit
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           check-latest: true
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: kickr-dev/action-setup@main # specific override for kickr-dev/action-setup
+      - uses: kickr-dev/action-setup@1abe1e8ec8b6109427dad81001b0018cb454529c # v0.0.0
         with:
           install-mode: goinstall
           version: beta
@@ -52,4 +50,3 @@ jobs:
           sign-commits: true
           signoff: true
           title: "ci(layout): regenerate kickr layout"
-          token: ${{ secrets.KICKR_MAINTENANCE_TOKEN }}
