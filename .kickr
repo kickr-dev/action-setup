@@ -6,7 +6,6 @@ ci:
   options:
     - codeql
     - harden-runner
-    - kickr:github-app
     - ossf-scorecard
   release:
     auth: github-token
@@ -18,3 +17,6 @@ license: mit
 maintainers:
   - name: kilianpaquier
 platform: github
+pre-commit:
+  - conventional-commits
+  - gitflow-branches
